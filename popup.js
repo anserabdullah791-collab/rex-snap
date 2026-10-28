@@ -19,20 +19,27 @@ function refreshStatus() {
     }
     $("dot").classList.toggle("on", !!res.active);
     $("statusText").textContent = res.active
-      ? "Camera effect active • state: " + res.phase
+      ? "Camera effect active • " + (res.gestureReady ? "finger-snap ready" : "gesture loading…") + " • state: " + res.phase
       : "Ready. Join a meeting and turn your camera on.";
   });
 }
 
-chrome.storage.sync.get({ enabled: true, particleStyle: "dust", duration: 2600 }, (c) => {
+chrome.storage.sync.get({ enabled: true, particleStyle: "dust", duration: 2600, gesture: true, soundSnap: true, sensitivity: 1.0 }, (c) => {
   $("enabled").checked = c.enabled;
   $("style").value = c.particleStyle;
   $("dur").value = c.duration;
+  $("gesture").checked = c.gesture;
+  $("soundSnap").checked = c.soundSnap;
+  $("sens").value = c.sensitivity;
+  $("sensVal").textContent = Number(c.sensitivity).toFixed(1);
   $("durVal").textContent = (c.duration / 1000).toFixed(1);
 });
 
 $("snapBtn").onclick = () => sendToTab("snap", refreshStatus);
 $("returnBtn").onclick = () => sendToTab("return", refreshStatus);
+$("gesture").onchange = (e) => chrome.storage.sync.set({ gesture: e.target.checked });
+$("soundSnap").onchange = (e) => chrome.storage.sync.set({ soundSnap: e.target.checked });
+$("sens").oninput = (e) => { $("sensVal").textContent = Number(e.target.value).toFixed(1); chrome.storage.sync.set({ sensitivity: parseFloat(e.target.value) }); };
 $("enabled").onchange = (e) => chrome.storage.sync.set({ enabled: e.target.checked });
 $("style").onchange = (e) => chrome.storage.sync.set({ particleStyle: e.target.value });
 $("dur").oninput = (e) => {

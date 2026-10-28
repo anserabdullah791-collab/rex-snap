@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Rex Snap \u2014 Disappear From Meetings",
-  "version": "1.1.0",
-  "description": "Thanos-style snap effect for your webcam on ANY website or web app (Meet, Zoom Web, Teams, Discord, Whereby, Instagram, Omegle-style apps and more). 100% on-device.",
+  "version": "1.2.0",
+  "description": "Thanos-style snap effect for your webcam on ANY website or web app. Just SNAP YOUR FINGERS and you turn to dust. Works on Meet, Zoom Web, WhatsApp Web calls, Teams, Discord and more. 100% on-device.",
   "permissions": [
     "storage",
     "activeTab",
@@ -58,7 +58,8 @@
     {
       "resources": [
         "lib/*",
-        "snap-engine.js"
+        "snap-engine.js",
+        "snap-detector.js"
       ],
       "matches": [
         "https://*/*",

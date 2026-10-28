@@ -8,6 +8,6 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.runtime.onInstalled.addListener((d) => {
   if (d.reason === "install") {
-    chrome.storage.sync.set({ enabled: true, particleStyle: "dust", duration: 2600 });
+    chrome.storage.sync.set({ enabled: true, particleStyle: "dust", duration: 2600, gesture: true, soundSnap: true, sensitivity: 1.0 });
   }
 });

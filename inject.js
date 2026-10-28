@@ -16,6 +16,9 @@
     phase: "visible",       // visible | snapping | gone | returning
     phaseStart: 0,
     particleStyle: "dust",  // dust | sand | embers | glitter
+    gesture: true,          // finger-snap trigger on/off
+    soundSnap: true,        // also listen for the snap SOUND (needs mic permission)
+    sensitivity: 1.0,
     duration: 2600,         // ms for the snap animation
     engine: null,
   };
@@ -28,6 +31,9 @@
       if (typeof m.enabled === "boolean") state.enabled = m.enabled;
       if (m.particleStyle) state.particleStyle = m.particleStyle;
       if (m.duration) state.duration = m.duration;
+      if (typeof m.gesture === "boolean") state.gesture = m.gesture;
+      if (typeof m.soundSnap === "boolean") state.soundSnap = m.soundSnap;
+      if (m.sensitivity) state.sensitivity = m.sensitivity;
       if (m.base) window.__rexSnapBase = m.base;
     } else if (m.type === "snap") {
       triggerSnap();
@@ -60,6 +66,7 @@
   const md = navigator.mediaDevices;
   if (!md || !md.getUserMedia) return;
   const origGUM = md.getUserMedia.bind(md);
+  window.__rexSnapRawGUM = origGUM;
 
   md.getUserMedia = async function (constraints) {
     const wantsVideo = constraints && constraints.video;
@@ -189,6 +196,28 @@
     requestAnimationFrame(draw);
 
     const outStream = out.captureStream(settings.frameRate || 30);
+
+    // ---- finger-snap gesture trigger ----
+    if (state.gesture && window.RexSnapDetector) {
+      try {
+        if (window.__rexSnapDetector) window.__rexSnapDetector.stop();
+        const det = window.RexSnapDetector.create({
+          base: window.__rexSnapBase,
+          getVideo: () => video,
+          useAudio: state.soundSnap,
+          rawGetUserMedia: origGUM,
+          sensitivity: state.sensitivity,
+          onSnap: (src) => {
+            // a snap toggles: visible -> snap, gone -> return
+            if (state.phase === "visible") triggerSnap();
+            else if (state.phase === "gone") triggerReturn();
+            post("gesture", { source: src });
+          },
+        });
+        window.__rexSnapDetector = det;
+        det.start().then((r) => post("detector", r));
+      } catch (e) { console.warn("[Rex Snap] gesture init failed", e); }
+    }
     return outStream;
   }
 
@@ -196,7 +225,7 @@
     return new Promise((resolve) => {
       let tries = 0;
       (function check() {
-        if (window.RexSnapEngine && window.__rexSnapBase !== undefined) return resolve();
+        if (window.RexSnapEngine && window.RexSnapDetector && window.__rexSnapBase !== undefined) return resolve();
         if (++tries > 80) return resolve(); // ~4s max, then continue anyway
         setTimeout(check, 50);
       })();

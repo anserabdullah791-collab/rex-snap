@@ -1,4 +1,4 @@
-# Rex Snap — Chrome Extension (v1.1)
+# Rex Snap — Chrome Extension (v1.2)
 
 Disappear from video calls with a particle "snap" effect, on **any website or web app** that uses your webcam.
 100% on-device. No account, no upload, no tracking.
@@ -11,6 +11,7 @@ Disappear from video calls with a particle "snap" effect, on **any website or we
 5. Pin the extension. Open your meeting, reload the tab once, turn on your camera, then press **Alt+S**.
 
 ## Controls
+- **Snap your fingers** in front of the camera: vanish. Snap again: return.
 - **Alt + S**: Snap / Return
 - Floating **🫰 Snap** button on the page
 - Popup: Snap, Return, particle style (dust / sand / embers / glitter), duration, enable switch

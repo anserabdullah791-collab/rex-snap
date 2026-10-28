@@ -20,12 +20,14 @@
   // Load order matters: engine + segmentation before the page can request the camera.
   // (inject.js is registered separately as a MAIN-world content script)
   injectScript("lib/selfie_segmentation.js")
+    .then(() => injectScript("lib/hands.js"))
     .then(() => injectScript("snap-engine.js"))
+    .then(() => injectScript("snap-detector.js"))
     .then(sendConfig);
 
   function sendConfig() {
     chrome.storage.sync.get(
-      { enabled: true, particleStyle: "dust", duration: 2600 },
+      { enabled: true, particleStyle: "dust", duration: 2600, gesture: true, soundSnap: true, sensitivity: 1.0 },
       (cfg) => {
         window.postMessage({ __rexSnap: true, type: "config", base, ...cfg }, "*");
       }
@@ -42,7 +44,7 @@
     else if (msg.cmd === "return") window.postMessage({ __rexSnap: true, type: "return" }, "*");
     else if (msg.cmd === "toggle") window.postMessage({ __rexSnap: true, type: "toggle" }, "*");
     else if (msg.cmd === "status") {
-      sendResponse({ phase: window.__rexSnapPhase || "visible", active: !!window.__rexSnapActive });
+      sendResponse({ phase: window.__rexSnapPhase || "visible", active: !!window.__rexSnapActive, gestureReady: !!window.__rexSnapDetectorOk, lastGesture: window.__rexSnapLastGesture || null });
       return true;
     }
   });
@@ -52,6 +54,8 @@
     if (ev.source !== window || !ev.data || ev.data.__rexSnapFromPage !== true) return;
     if (ev.data.type === "phase") window.__rexSnapPhase = ev.data.phase;
     if (ev.data.type === "active") window.__rexSnapActive = ev.data.active;
+    if (ev.data.type === "detector") window.__rexSnapDetectorOk = !!ev.data.vision;
+    if (ev.data.type === "gesture") window.__rexSnapLastGesture = ev.data.source;
   });
 
   // In-page floating button (so you can snap without opening the popup)

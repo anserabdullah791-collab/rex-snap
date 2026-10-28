@@ -62,12 +62,23 @@
   <input type="range" id="dur" min="1200" max="5000" step="100" value="2600" />
 
   <div class="switch">
+    <span>👆 Finger-snap trigger</span>
+    <input type="checkbox" id="gesture" checked />
+  </div>
+  <div class="switch">
+    <span>🔊 Also listen for snap sound (mic)</span>
+    <input type="checkbox" id="soundSnap" checked />
+  </div>
+  <label for="sens">Snap sensitivity: <span id="sensVal">1.0</span> (higher = easier to trigger)</label>
+  <input type="range" id="sens" min="0.5" max="1.5" step="0.1" value="1.0" />
+
+  <div class="switch">
     <span>Enable effect on camera</span>
     <input type="checkbox" id="enabled" checked />
   </div>
 
   <div class="hint">
-    Shortcut: <kbd>Alt</kbd>+<kbd>S</kbd> toggles Snap / Return.<br/>
+    <b>Snap your fingers</b> in front of the camera to vanish, snap again to return.<br/>Shortcut: <kbd>Alt</kbd>+<kbd>S</kbd> also works.<br/>
     After changing "Enable", reload your meeting tab so the camera restarts.<br/>
     Works on ANY website or web app that uses your camera.
   </div>

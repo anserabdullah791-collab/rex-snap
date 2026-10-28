@@ -158,7 +158,7 @@
     const holeC = document.createElement("canvas"); holeC.width = W; holeC.height = H;
     const hctx = holeC.getContext("2d");
     const levels = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 7; i++) {
       const c = document.createElement("canvas");
       c.width = Math.max(2, Math.round(W / Math.pow(2, i + 2)));
       c.height = Math.max(2, Math.round(H / Math.pow(2, i + 2)));
@@ -200,6 +200,9 @@
       }
       fillX.clearRect(0, 0, W, H);
       fillX.imageSmoothingEnabled = true;
+      // base: the coarsest level stretched over everything (never fully transparent
+      // as long as any background pixel exists in the frame)
+      fillX.drawImage(levels[levels.length - 1].c, 0, 0, W, H);
       for (let i = levels.length - 1; i >= 0; i--) {
         fillX.drawImage(levels[i].c, 0, 0, W, H);   // coarse first, finer over it
       }
