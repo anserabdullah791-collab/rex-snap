@@ -150,19 +150,32 @@
     const roomTmp = document.createElement("canvas");
     roomTmp.width = W; roomTmp.height = H;
     const rtx = roomTmp.getContext("2d");
+    const softMask = document.createElement("canvas");
+    softMask.width = W; softMask.height = H;
+    const smx = softMask.getContext("2d");
     function paintEmptyRoom(ctx, bgCanvas, maskCanvas) {
-      // 1) sharp original everywhere
+      // 1) sharp original everywhere (the real room, untouched)
       ctx.drawImage(bgCanvas, 0, 0, W, H);
-      // 2) blurred copy, clipped to the (slightly dilated) person mask
+
+      // 2) feathered + slightly grown copy of the person mask on its OWN canvas
+      smx.clearRect(0, 0, W, H);
+      smx.filter = "blur(8px)";
+      smx.drawImage(maskCanvas, 0, 0, W, H);
+      smx.drawImage(maskCanvas, -3, 0, W, H);
+      smx.drawImage(maskCanvas, 3, 0, W, H);
+      smx.filter = "none";
+
+      // 3) heavily blurred room, cut out ONLY where the person stood
+      rtx.globalCompositeOperation = "source-over";
       rtx.clearRect(0, 0, W, H);
       rtx.filter = "blur(26px)";
       rtx.drawImage(bgCanvas, 0, 0, W, H);
       rtx.filter = "none";
       rtx.globalCompositeOperation = "destination-in";
-      rtx.filter = "blur(10px)";           // feather + dilate the mask edge
-      rtx.drawImage(maskCanvas, 0, 0, W, H);
-      rtx.filter = "none";
+      rtx.drawImage(softMask, 0, 0, W, H);
       rtx.globalCompositeOperation = "source-over";
+
+      // 4) patch over the sharp room
       ctx.drawImage(roomTmp, 0, 0, W, H);
     }
 

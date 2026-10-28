@@ -22,6 +22,7 @@ pctx.fillStyle='#111';pctx.beginPath();pctx.ellipse(320,320,140,130,0,0,7);pctx.
 const mctx=mask.getContext('2d');
 mctx.drawImage(person,0,0);
 mctx.globalCompositeOperation='source-in';mctx.fillStyle='#fff';mctx.fillRect(0,0,W,H);mctx.globalCompositeOperation='source-over';
+bctx.drawImage(person,0,0);
 const E=window.RexSnapEngine.create({width:W,height:H});
 let phase='visible',t0=0,DUR=2600;
 function snap(){phase='snapping';t0=performance.now()}
