@@ -19,6 +19,9 @@ bctx.fillStyle='#4a7a3a';bctx.beginPath();bctx.arc(560,250,50,0,7);bctx.fill(); 
 pctx.fillStyle='#2a2a30';pctx.beginPath();pctx.ellipse(320,120,55,62,0,0,7);pctx.fill();
 pctx.fillStyle='#c98a5e';pctx.beginPath();pctx.ellipse(320,135,42,52,0,0,7);pctx.fill();
 pctx.fillStyle='#111';pctx.beginPath();pctx.ellipse(320,320,140,130,0,0,7);pctx.fill();
+const mctx=mask.getContext('2d');
+mctx.drawImage(person,0,0);
+mctx.globalCompositeOperation='source-in';mctx.fillStyle='#fff';mctx.fillRect(0,0,W,H);mctx.globalCompositeOperation='source-over';
 const E=window.RexSnapEngine.create({width:W,height:H});
 let phase='visible',t0=0,DUR=2600;
 function snap(){phase='snapping';t0=performance.now()}

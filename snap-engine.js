@@ -106,24 +106,38 @@
       ctx.restore();
     }
 
-    // Draw the part of the body that has NOT yet dissolved (or has re-formed)
+    // Draw the part of the body that has NOT yet dissolved (or has re-formed).
+    // Uses a per-row, noise-displaced front with a feathered edge -> organic crumbling.
+    const fx = document.createElement("canvas");
+    fx.width = W; fx.height = H;
+    const fctx = fx.getContext("2d");
+    const ROWS = 48;
     function drawRemainingBody(ctx, personCanvas, progress, reverse) {
-      // clip with a noisy vertical front using many thin strips
-      const strips = 90;
-      const sw = W / strips;
       const span = Math.max(0.01, bounds.maxX - bounds.minX);
-      for (let s = 0; s < strips; s++) {
-        const nx = (s + 0.5) / strips;
-        const along = (nx - bounds.minX) / span;
-        if (along < 0 || along > 1) {
-          // outside bbox: keep (nothing of person there)
-          continue;
-        }
-        const thr = Math.min(0.999, Math.max(0, along * 0.78 + noise(nx * 9, 0.5) * 0.22));
-        const dissolved = reverse ? progress < thr : progress > thr;
-        if (dissolved) continue; // do not draw this strip of the body
-        ctx.drawImage(personCanvas, s * sw, 0, sw + 1, H, s * sw, 0, sw + 1, H);
+      const p = reverse ? 1 - progress : progress;
+      // front position in normalized x (0..1) incl. margin so it fully clears
+      const front = bounds.minX + (p * 1.25 - 0.12) * span;
+      fctx.clearRect(0, 0, W, H);
+      fctx.globalCompositeOperation = "source-over";
+      fctx.drawImage(personCanvas, 0, 0, W, H);
+      // build a "keep" mask: everything RIGHT of the front is kept (dissolves left->right
+      // means the LEFT disappears first), with a jagged noisy edge
+      fctx.globalCompositeOperation = "destination-in";
+      fctx.fillStyle = "#fff";
+      fctx.beginPath();
+      fctx.moveTo(W, 0);
+      for (let r = 0; r <= ROWS; r++) {
+        const y = (r / ROWS) * H;
+        const n = noise(r * 0.37, p * 3.0) - 0.5;      // jitter per row
+        const wobble = Math.sin(r * 0.55 + p * 9) * 0.015;
+        const xEdge = (front + n * 0.10 + wobble) * W;
+        fctx.lineTo(Math.max(0, Math.min(W, xEdge)), y);
       }
+      fctx.lineTo(W, H);
+      fctx.closePath();
+      fctx.fill();
+      fctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(fx, 0, 0);
     }
 
     function drawBackground(ctx, bgCanvas, maskCanvas) {
@@ -131,13 +145,25 @@
       ctx.drawImage(bgCanvas, 0, 0, W, H);
     }
 
-    // The empty room: paint over person with a blurred copy of the surrounding area
+    // The empty room: keep the real, SHARP background. Only the area where the person
+    // stood is replaced by a soft blurred patch (so no person ghost remains).
+    const roomTmp = document.createElement("canvas");
+    roomTmp.width = W; roomTmp.height = H;
+    const rtx = roomTmp.getContext("2d");
     function paintEmptyRoom(ctx, bgCanvas, maskCanvas) {
-      ctx.save();
-      ctx.filter = "blur(18px) brightness(0.96)";
+      // 1) sharp original everywhere
       ctx.drawImage(bgCanvas, 0, 0, W, H);
-      ctx.filter = "none";
-      ctx.restore();
+      // 2) blurred copy, clipped to the (slightly dilated) person mask
+      rtx.clearRect(0, 0, W, H);
+      rtx.filter = "blur(26px)";
+      rtx.drawImage(bgCanvas, 0, 0, W, H);
+      rtx.filter = "none";
+      rtx.globalCompositeOperation = "destination-in";
+      rtx.filter = "blur(10px)";           // feather + dilate the mask edge
+      rtx.drawImage(maskCanvas, 0, 0, W, H);
+      rtx.filter = "none";
+      rtx.globalCompositeOperation = "source-over";
+      ctx.drawImage(roomTmp, 0, 0, W, H);
     }
 
     function renderSnap(ctx, bgCanvas, personCanvas, maskCanvas, progress, style) {
