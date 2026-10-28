@@ -1,0 +1,94 @@
+{
+  "manifest_version": 3,
+  "name": "Rex Snap \u2014 Disappear From Meetings",
+  "version": "1.0.0",
+  "description": "Thanos-style snap effect for your webcam in Google Meet, Zoom Web, Teams and any site. Your body turns to dust and drifts away. 100% on-device.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://*.zoom.us/*",
+    "https://teams.microsoft.com/*",
+    "https://teams.live.com/*",
+    "https://*.whereby.com/*",
+    "https://discord.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Rex Snap",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://meet.google.com/*",
+        "https://*.zoom.us/*",
+        "https://teams.microsoft.com/*",
+        "https://teams.live.com/*",
+        "https://*.whereby.com/*",
+        "https://discord.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://meet.google.com/*",
+        "https://*.zoom.us/*",
+        "https://teams.microsoft.com/*",
+        "https://teams.live.com/*",
+        "https://*.whereby.com/*",
+        "https://discord.com/*"
+      ],
+      "js": [
+        "inject.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/*",
+        "snap-engine.js"
+      ],
+      "matches": [
+        "https://meet.google.com/*",
+        "https://*.zoom.us/*",
+        "https://teams.microsoft.com/*",
+        "https://teams.live.com/*",
+        "https://*.whereby.com/*",
+        "https://discord.com/*"
+      ]
+    }
+  ],
+  "commands": {
+    "toggle-snap": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
+      "description": "Snap / Return (disappear from meeting)"
+    }
+  }
+}
