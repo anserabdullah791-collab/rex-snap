@@ -147,36 +147,78 @@
 
     // The empty room: keep the real, SHARP background. Only the area where the person
     // stood is replaced by a soft blurred patch (so no person ghost remains).
-    const roomTmp = document.createElement("canvas");
-    roomTmp.width = W; roomTmp.height = H;
-    const rtx = roomTmp.getContext("2d");
-    const softMask = document.createElement("canvas");
-    softMask.width = W; softMask.height = H;
-    const smx = softMask.getContext("2d");
+    // ---- Empty-room synthesis (inpainting) ----------------------------------
+    // Goal: remove the person's colours entirely and fill their area from the
+    // SURROUNDING background. Method (fast, canvas-only, ~real-time):
+    //   1. keep a low-res copy of the frame with the person cut OUT (alpha = 0)
+    //   2. repeatedly downscale/upscale ("pyramid smear") so background colours
+    //      bleed into the hole
+    //   3. composite: sharp original outside the mask, smeared fill inside it
+    const LW = Math.max(64, Math.round(W / 8)), LH = Math.max(36, Math.round(H / 8));
+    const holeC = document.createElement("canvas"); holeC.width = W; holeC.height = H;
+    const hctx = holeC.getContext("2d");
+    const levels = [];
+    for (let i = 0; i < 4; i++) {
+      const c = document.createElement("canvas");
+      c.width = Math.max(2, Math.round(W / Math.pow(2, i + 2)));
+      c.height = Math.max(2, Math.round(H / Math.pow(2, i + 2)));
+      levels.push({ c, x: c.getContext("2d") });
+    }
+    const fillC = document.createElement("canvas"); fillC.width = W; fillC.height = H;
+    const fillX = fillC.getContext("2d");
+    const growMask = document.createElement("canvas"); growMask.width = W; growMask.height = H;
+    const gmx = growMask.getContext("2d");
+    const outC = document.createElement("canvas"); outC.width = W; outC.height = H;
+    const outX = outC.getContext("2d");
+
     function paintEmptyRoom(ctx, bgCanvas, maskCanvas) {
-      // 1) sharp original everywhere (the real room, untouched)
-      ctx.drawImage(bgCanvas, 0, 0, W, H);
+      // 0) grown + feathered person mask (white = person area to replace)
+      gmx.clearRect(0, 0, W, H);
+      gmx.filter = "blur(6px)";
+      for (const [dx, dy] of [[0,0],[-6,0],[6,0],[0,-6],[0,6],[-4,-4],[4,4],[-4,4],[4,-4]]) {
+        gmx.drawImage(maskCanvas, dx, dy, W, H);
+      }
+      gmx.filter = "none";
 
-      // 2) feathered + slightly grown copy of the person mask on its OWN canvas
-      smx.clearRect(0, 0, W, H);
-      smx.filter = "blur(8px)";
-      smx.drawImage(maskCanvas, 0, 0, W, H);
-      smx.drawImage(maskCanvas, -3, 0, W, H);
-      smx.drawImage(maskCanvas, 3, 0, W, H);
-      smx.filter = "none";
+      // 1) frame with person punched out (keep only background pixels)
+      hctx.globalCompositeOperation = "source-over";
+      hctx.clearRect(0, 0, W, H);
+      hctx.drawImage(bgCanvas, 0, 0, W, H);
+      hctx.globalCompositeOperation = "destination-out";
+      hctx.drawImage(growMask, 0, 0, W, H);
+      hctx.globalCompositeOperation = "source-over";
 
-      // 3) heavily blurred room, cut out ONLY where the person stood
-      rtx.globalCompositeOperation = "source-over";
-      rtx.clearRect(0, 0, W, H);
-      rtx.filter = "blur(26px)";
-      rtx.drawImage(bgCanvas, 0, 0, W, H);
-      rtx.filter = "none";
-      rtx.globalCompositeOperation = "destination-in";
-      rtx.drawImage(softMask, 0, 0, W, H);
-      rtx.globalCompositeOperation = "source-over";
+      // 2) pyramid smear: shrink (averages only the remaining background pixels,
+      //    alpha-weighted) then paint coarse -> fine so the hole is filled
+      let prev = holeC;
+      for (let i = 0; i < levels.length; i++) {
+        const L = levels[i];
+        L.x.clearRect(0, 0, L.c.width, L.c.height);
+        L.x.imageSmoothingEnabled = true;
+        L.x.drawImage(prev, 0, 0, L.c.width, L.c.height);
+        prev = L.c;
+      }
+      fillX.clearRect(0, 0, W, H);
+      fillX.imageSmoothingEnabled = true;
+      for (let i = levels.length - 1; i >= 0; i--) {
+        fillX.drawImage(levels[i].c, 0, 0, W, H);   // coarse first, finer over it
+      }
+      fillX.filter = "blur(5px)";
+      fillX.drawImage(fillC, 0, 0);
+      fillX.filter = "none";
 
-      // 4) patch over the sharp room
-      ctx.drawImage(roomTmp, 0, 0, W, H);
+      // 3) final: fill only where the person was, over the sharp original
+      outX.globalCompositeOperation = "source-over";
+      outX.clearRect(0, 0, W, H);
+      outX.drawImage(fillC, 0, 0, W, H);
+      outX.globalCompositeOperation = "destination-in";
+      outX.drawImage(growMask, 0, 0, W, H);
+      outX.globalCompositeOperation = "source-over";
+
+      // sharp background everywhere (person already punched out), then the fill
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(holeC, 0, 0, W, H);   // sharp room, hole where person was
+      ctx.drawImage(outC, 0, 0, W, H);    // inpainted fill into the hole
     }
 
     function renderSnap(ctx, bgCanvas, personCanvas, maskCanvas, progress, style) {
